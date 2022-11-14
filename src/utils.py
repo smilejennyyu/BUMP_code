@@ -1,3 +1,4 @@
+#%%
 import pandas as pd
 import numpy as np
 from s3_utils import *
@@ -202,7 +203,7 @@ def data_load(data_keys={'oura_sleep', 'birth'}, wave=4):
         key = f'bump/app_activities/wave_{wave}/surveys.csv.gz'
         df_survey = pandas_from_csv_s3(bucket, key=key, compression='gzip')
         df_survey['date'] = pd.to_datetime(df_survey.updated_at).dt.date
-        dfs['survey'] = df_survey
+        dfs['surveys'] = df_survey
 
     # SAM survey
     if 'quick_activities' in data_keys:
@@ -212,107 +213,90 @@ def data_load(data_keys={'oura_sleep', 'birth'}, wave=4):
         dfs['quick_activities'] = df_sam
 
     # Others
-    if 'ace':
+    if 'ace' in data_keys:
         key = f'bump/redcap/wave_{wave}/ace.csv.gz'
         df_ace = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_ace['date'] = pd.to_datetime(df_ace.event_date).dt.date
         dfs['ace'] = df_ace
-    if 'adverse_event_report':
+    if 'adverse_event_report' in data_keys:
         key = f'bump/redcap/wave_{wave}/adverse_event_report.csv.gz'
         df_adverse_event_report = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_adverse_event_report['date'] = pd.to_datetime(df_adverse_event_report.event_date).dt.date
         dfs['adverse_event_report'] = df_adverse_event_report
-    if 'birthing_data_cohort_2_only':
+    if 'birthing_data_cohort_2_only' in data_keys:
         key = f'bump/redcap/wave_{wave}/birthing_data_cohort_2_only.csv.gz'
         df_birthing_data_cohort_2_only = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_birthing_data_cohort_2_only['date'] = pd.to_datetime(df_birthing_data_cohort_2_only.event_date).dt.date
         dfs['birthing_data_cohort_2_only'] = df_birthing_data_cohort_2_only
-    if 'check_in_2_addendum':
+    if 'check_in_2_addendum' in data_keys:
         key = f'bump/redcap/wave_{wave}/check_in_2_addendum.csv.gz'
         df_check_in_2_addendum = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_check_in_2_addendum['date'] = pd.to_datetime(df_check_in_2_addendum.event_date).dt.date
         dfs['check_in_2_addendum'] = df_check_in_2_addendum
-    if 'check_in_adherence_log':
+    if 'check_in_adherence_log' in data_keys:
         key = f'bump/redcap/wave_{wave}/check_in_adherence_log.csv.gz'
         df_check_in_adherence_log = pandas_from_csv_s3(bucket, key=key, compression='gzip')
         df_check_in_adherence_log['date'] = pd.to_datetime(df_check_in_adherence_log.event_date).dt.date
         dfs['check_in_adherence_log'] = df_check_in_adherence_log
-    if 'cssrs':
+    if 'cssrs' in data_keys:
         key = f'bump/redcap/wave_{wave}/cssrs.csv.gz'
         df_cssrs = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_cssrs['date'] = pd.to_datetime(df_cssrs.event_date).dt.date
         dfs['cssrs'] = df_cssrs
-    if 'enrollment_status':
+    if 'enrollment_status' in data_keys:
         key = f'bump/redcap/wave_{wave}/enrollment_status.csv.gz'
         df_enrollment_status = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_enrollment_status['date'] = pd.to_datetime(df_enrollment_status.event_date).dt.date
         dfs['enrollment_status'] = df_enrollment_status
-    if 'generalized_anxiety_disorder_scale_gad7':
+    if 'generalized_anxiety_disorder_scale_gad7' in data_keys:
         key = f'bump/redcap/wave_{wave}/generalized_anxiety_disorder_scale_gad7.csv.gz'
         df_generalized_anxiety_disorder_scale_gad7 = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_generalized_anxiety_disorder_scale_gad7['date'] = pd.to_datetime(df_generalized_anxiety_disorder_scale_gad7.event_date).dt.date
         dfs['generalized_anxiety_disorder_scale_gad7'] = df_generalized_anxiety_disorder_scale_gad7
-    if 'medications':
+    if 'medications' in data_keys:
         key = f'bump/redcap/wave_{wave}/medications.csv.gz'
         df_medications = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_medications['date'] = pd.to_datetime(df_medications.event_date).dt.date
         dfs['medications'] = df_medications
-    if 'metadata':
+    if 'metadata' in data_keys:
         key = f'bump/redcap/wave_{wave}/metadata.csv.gz'
         df_metadata = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_metadata['date'] = pd.to_datetime(df_metadata.event_date).dt.date
         dfs['metadata'] = df_metadata
-    if 'monthly_points_log':
+    if 'monthly_points_log' in data_keys:
         key = f'bump/redcap/wave_{wave}/monthly_points_log.csv.gz'
         df_monthly_points_log = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_monthly_points_log['date'] = pd.to_datetime(df_monthly_points_log.event_date).dt.date
         dfs['monthly_points_log'] = df_monthly_points_log
-    if 'personal_characteristics':
+    if 'personal_characteristics' in data_keys:
         key = f'bump/redcap/wave_{wave}/personal_characteristics.csv.gz'
         df_personal_characteristics = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_personal_characteristics['date'] = pd.to_datetime(df_personal_characteristics.event_date).dt.date
         dfs['personal_characteristics'] = df_personal_characteristics
-    if 'phq9':
+    if 'phq9' in data_keys:
         key = f'bump/redcap/wave_{wave}/phq9.csv.gz'
         df_phq9 = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_phq9['date'] = pd.to_datetime(df_phq9.event_date).dt.date
         dfs['phq9'] = df_phq9
-    if 'pitting_edema_cohort_2_only':
+    if 'pitting_edema_cohort_2_only' in data_keys:
         key = f'bump/redcap/wave_{wave}/pitting_edema_cohort_2_only.csv.gz'
         df_pitting_edema_cohort_2_only = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_pitting_edema_cohort_2_only['date'] = pd.to_datetime(df_pitting_edema_cohort_2_only.event_date).dt.date
         dfs['pitting_edema_cohort_2_only'] = df_pitting_edema_cohort_2_only
-    if 'risk_alert_trigger':
+    if 'risk_alert_trigger' in data_keys:
         key = f'bump/redcap/wave_{wave}/risk_alert_trigger.csv.gz'
         df_risk_alert_trigger = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_risk_alert_trigger['date'] = pd.to_datetime(df_risk_alert_trigger.event_date).dt.date
         dfs['risk_alert_trigger'] = df_risk_alert_trigger
-    if 'study_completion_form':
+    if 'study_completion_form' in data_keys:
         key = f'bump/redcap/wave_{wave}/study_completion_form.csv.gz'
         df_study_completion_form = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_study_completion_form['date'] = pd.to_datetime(df_study_completion_form.event_date).dt.date
         dfs['study_completion_form'] = df_study_completion_form
-    if 'study_dates_cohort_info':
+    if 'study_dates_cohort_info' in data_keys:
         key = f'bump/redcap/wave_{wave}/study_dates_cohort_info.csv.gz'
         df_study_dates_cohort_info = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_study_dates_cohort_info['date'] = pd.to_datetime(df_study_dates_cohort_info.event_date).dt.date
         dfs['study_dates_cohort_info'] = df_study_dates_cohort_info
-    if 'study_ids':
+    if 'study_ids' in data_keys:
         key = f'bump/redcap/wave_{wave}/study_ids.csv.gz'
         df_study_ids = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_study_ids['date'] = pd.to_datetime(df_study_ids.event_date).dt.date
         dfs['study_ids'] = df_study_ids
-    if 'suicide_risk_response_completed_by_study_doctor':
+    if 'suicide_risk_response_completed_by_study_doctor' in data_keys:
         key = f'bump/redcap/wave_{wave}/suicide_risk_response_completed_by_study_doctor.csv.gz'
         df_suicide_risk_response_completed_by_study_doctor = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_suicide_risk_response_completed_by_study_doctor['date'] = pd.to_datetime(df_suicide_risk_response_completed_by_study_doctor.event_date).dt.date
         dfs['suicide_risk_response_completed_by_study_doctor'] = df_suicide_risk_response_completed_by_study_doctor
-    if 'symptom_tracking_permission':
+    if 'symptom_tracking_permission' in data_keys:
         key = f'bump/redcap/wave_{wave}/symptom_tracking_permission.csv.gz'
         df_symptom_tracking_permission = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_symptom_tracking_permission['date'] = pd.to_datetime(df_symptom_tracking_permission.event_date).dt.date
         dfs['symptom_tracking_permission'] = df_symptom_tracking_permission
     
     # make sure all requested datasets are stored in dfs
     assert (len(dfs) == len(data_keys))
     return dfs
+
+# %%
