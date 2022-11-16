@@ -128,13 +128,13 @@ def data_load(data_keys={'oura_sleep', 'birth'}, wave=4):
     if 'camcog_NBX' in data_keys:
         key = f'bump/camcog/wave_{wave}/NBX.csv.gz'
         df_NBX = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_NBX['date'] = pd.to_datetime(df_NBX.event_date).dt.date
+        # df_NBX['date'] = pd.to_datetime(df_NBX.event_date).dt.date
         dfs['camcog_NBX'] = df_NBX
 
     if 'camcog_PVT' in data_keys:
         key = f'bump/camcog/wave_{wave}/PVT.csv.gz'
         df_PVT = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_PVT['date'] = pd.to_datetime(df_PVT.event_date).dt.date
+        # df_PVT['date'] = pd.to_datetime(df_PVT.event_date).dt.date
         dfs['camcog_PVT'] = df_PVT
     
     # Garmin Data
