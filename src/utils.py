@@ -233,7 +233,6 @@ def data_load(data_keys={'oura_sleep', 'birth'}, wave=4):
     if 'check_in_adherence_log' in data_keys:
         key = f'bump/redcap/wave_{wave}/check_in_adherence_log.csv.gz'
         df_check_in_adherence_log = pandas_from_csv_s3(bucket, key=key, compression='gzip')
-        df_check_in_adherence_log['date'] = pd.to_datetime(df_check_in_adherence_log.event_date).dt.date
         dfs['check_in_adherence_log'] = df_check_in_adherence_log
     if 'cssrs' in data_keys:
         key = f'bump/redcap/wave_{wave}/cssrs.csv.gz'
