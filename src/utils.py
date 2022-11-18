@@ -1,7 +1,8 @@
 #%%
 import pandas as pd
 import numpy as np
-from s3_utils import *
+# from . import s3_utils.pandas_from_csv_s3
+from .s3_utils import *
 
 def zScore(X, dim=0):
     """
