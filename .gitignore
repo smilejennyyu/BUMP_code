@@ -8,6 +8,8 @@
 
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
+*.csv
+*.txt
 
 # IPython
 profile_default/
