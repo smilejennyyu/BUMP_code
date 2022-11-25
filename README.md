@@ -7,3 +7,6 @@
 - [Preprocessing](./notebooks/preprocessing.ipynb)
 - [Change Point Detection](./notebooks/cpd.ipynb)
 - [Granger Causality](./notebooks/granger.ipynb)
+
+## Causality
+- To run `ace_dagwithnotear_algo.ipynb`, please clone `notear` from https://github.com/jmoss20/notears. 
