@@ -82,7 +82,7 @@ def separate_by_delivery(overall_df, same_set_users=True):
     postnatal_df = df[df['redcap_event_name'].str.contains('postnatal')]
     prenatal_df = df[~df['redcap_event_name'].str.contains('postnatal')]
     return prenatal_df, postnatal_df
-prenatal_df, postnatal_df = separate_by_delivery(overall_df, same_set_users=False)
+
 
 # [markdown]
 # # Add Global survey data - PROMIS quality of life
@@ -156,6 +156,9 @@ promis_survey.head()
 #
 promis_mental_lst = [f'promis_global10_mental_{x}' for x in range(1,5)]
 promis_physical_lst = [f'promis_global10_physical_{x}' for x in range(1,5)]
+ace_lst = [f'ace_{x}' for x in range(1,11)]
+phq9_lst = [f'phq9_{x}' for x in range(1,11)]
+gad_lst = [f'gad_{x}' for x in range(1,9)]
 mental_health_question_ids = [115, 117, 118, 121]
 physical_health_question_ids = [116, 120, 122, 123]
 promis_survey_processed = pd.DataFrame(columns=['user_id', 'date'] + promis_mental_lst + promis_physical_lst)
@@ -196,7 +199,7 @@ def separate_promis(prenatal_df, postnatal_df, promis_df):
     promis_postnatal_df = pd.concat(promis_postnatal_df_list, ignore_index=True)
     promis_prenatal_df = pd.concat(promis_prenatal_df_list, ignore_index=True)
     return promis_prenatal_df, promis_postnatal_df
-promis_prenatal_df, promis_postnatal_df = separate_promis(prenatal_df, postnatal_df, promis_survey_processed)
+
 
 
 #
@@ -343,72 +346,111 @@ def get_adjacency_mat(processed_overall_df):
     print('Acyclicity loss: {}'.format(output_dict['h']))
     print('Least squares loss: {}'.format(output_dict['loss']))
 
-    plt.matshow(output_dict['W'])
-    plt.title("Learned adjacency matrix")
-    plt.colorbar()
+    # plt.matshow(output_dict['W'])
+    # plt.title("Learned adjacency matrix")
+    # plt.colorbar()
 
-    acyclic_W = notears.utils.threshold_output(output_dict['W'])
+    # acyclic_W = notears.utils.threshold_output(output_dict['W'])
 
-    plt.matshow(acyclic_W)
-    plt.title("Learned adjacency matrix (thresholded)")
-    plt.colorbar()
+    # plt.matshow(acyclic_W)
+    # plt.title("Learned adjacency matrix (thresholded)")
+    # plt.colorbar()
 
-    G = networkx.DiGraph(acyclic_W)
-    networkx.draw(G, with_labels=True)
+    # G = networkx.DiGraph(acyclic_W)
+    # networkx.draw(G, with_labels=True)
 
-    weighted_G = networkx.DiGraph((output_dict['W'] * acyclic_W).round(1))
-    layout = networkx.shell_layout(weighted_G)
-    networkx.draw(weighted_G, layout, node_size=1000, with_labels=True, font_weight='bold', font_size=15)
-    labels = networkx.get_edge_attributes(weighted_G,'weight')
-    networkx.draw_networkx_edge_labels(weighted_G,pos=layout,edge_labels=labels)
-    plt.show()
+    # weighted_G = networkx.DiGraph((output_dict['W'] * acyclic_W).round(1))
+    # layout = networkx.shell_layout(weighted_G)
+    # networkx.draw(weighted_G, layout, node_size=1000, with_labels=True, font_weight='bold', font_size=15)
+    # labels = networkx.get_edge_attributes(weighted_G,'weight')
+    # networkx.draw_networkx_edge_labels(weighted_G,pos=layout,edge_labels=labels)
+    # plt.show()
 
     return output_dict['W']
 
-path = "/mnt/results/adj_mat"
-# os.mkdir(path)
-from random import sample
-unique_user_lst = list(promis_prenatal_df['user_id'].unique())
-for i in range(10):
-    
-    sampled_user_lst = sample(unique_user_lst, 40)
-    
-    promis_prenatal_df_sampled = promis_prenatal_df[promis_prenatal_df['user_id'].isin(sampled_user_lst)]
-    prenatal_df_sampled = prenatal_df[prenatal_df['user_id'].isin(sampled_user_lst)]
-    processed_overall_df = process_all_df(prenatal_df_sampled, promis_prenatal_df_sampled)
 
-    W = get_adjacency_mat(processed_overall_df)
-    np.save(os.path.join(path, f"W_{i}.npy"), W)
 
 # # [markdown]
-# # # Individual similarity analysis
+# # # Individual question similarity analysis
+def get_adjacency_mat_individual_questions(df):
+    data = df[phq9_lst + gad_lst + promis_mental_lst + promis_physical_lst].to_numpy().tolist()
+    output_dict = notears.run(notears.notears_standard, data, notears.loss.least_squares_loss, notears.loss.least_squares_loss_grad, e=1e-8, verbose=False)
+    print('Acyclicity loss: {}'.format(output_dict['h']))
+    print('Least squares loss: {}'.format(output_dict['loss']))
+    return output_dict["W"]
+def process_all_df_individual_questions(overall_df, promis_survey_processed):
+    #
 
-# #
-# ace_lst = [f'ace_{x}' for x in range(1,11)]
-# phq9_lst = [f'phq9_{x}' for x in range(1,11)]
-# gad_lst = [f'gad_{x}' for x in range(1,9)]
-# processed_individual_questions_df = pd.DataFrame(columns=['user_id', 'ace_sum'] + phq9_lst + gad_lst + promis_mental_lst + promis_physical_lst)
+    processed_individual_questions_df = pd.DataFrame(columns=['user_id', 'ace_sum'] + phq9_lst + gad_lst + promis_mental_lst + promis_physical_lst)
 
-# for uid in overall_df['user_id'].unique():
-#     each_df = overall_df.loc[overall_df['user_id']==uid]
-#     ace_sum = each_df[ace_lst].sum(axis=1)
-#     ace_sum_mean = ace_sum.apply(map_levels, map_dict=ace_levels).mean()
+    for uid in overall_df['user_id'].unique():
+        each_df = overall_df.loc[overall_df['user_id']==uid]
+        ace_sum = each_df[ace_lst].sum(axis=1)
+        ace_sum_mean = ace_sum.apply(map_levels, map_dict=ace_levels).mean()
 
-#     phq9_sum = each_df[phq9_lst].mean(axis=0)
+        phq9_sum = each_df[phq9_lst].mean(axis=0)
 
-#     gad_sum = each_df[gad_lst].mean(axis=0)
+        gad_sum = each_df[gad_lst].mean(axis=0)
 
-#     promis_mental_sum = promis_survey_processed.loc[promis_survey_processed['user_id']==uid][promis_mental_lst].mean(axis=0)
+        promis_mental_sum = promis_survey_processed.loc[promis_survey_processed['user_id']==uid][promis_mental_lst].mean(axis=0)
 
-#     promis_physical_sum = promis_survey_processed.loc[promis_survey_processed['user_id']==uid][promis_physical_lst].mean(axis=0)
+        promis_physical_sum = promis_survey_processed.loc[promis_survey_processed['user_id']==uid][promis_physical_lst].mean(axis=0)
+        
+        processed_individual_questions_df = processed_individual_questions_df.append(pd.DataFrame([[uid, ace_sum_mean] + phq9_sum.tolist() + gad_sum.tolist() + promis_mental_sum.tolist() + promis_physical_sum.tolist()], columns=['user_id', 'ace_sum'] + phq9_lst + gad_lst + promis_mental_lst + promis_physical_lst), ignore_index = True)
+
+
+    #
+    processed_individual_questions_df = processed_individual_questions_df.dropna()
+    return processed_individual_questions_df
+
+prenatal_df, postnatal_df = separate_by_delivery(overall_df, same_set_users=True)
+promis_prenatal_df, promis_postnatal_df = separate_promis(prenatal_df, postnatal_df, promis_survey_processed)
+
+path = "/mnt/results/same_set_user"
+individual_question = False
+if individual_question:
+    path += "_individual"
+if not os.path.exists(path):
+    os.mkdir(path)
+import random
+random.seed(42)
+unique_user_lst = list(promis_prenatal_df['user_id'].unique())
+
+iter = 0
+for rest_df, promis_df in [[prenatal_df, promis_prenatal_df], [postnatal_df, promis_postnatal_df]]:
+    if individual_question:
+        processed_overall_df = process_all_df_individual_questions(rest_df, promis_df)
+        W = get_adjacency_mat_individual_questions(processed_overall_df)
+
+    else:
+        processed_overall_df = process_all_df(rest_df, promis_df).dropna()
+        W = get_adjacency_mat(processed_overall_df)
     
-#     processed_individual_questions_df = processed_individual_questions_df.append(pd.DataFrame([[uid, ace_sum_mean] + phq9_sum.tolist() + gad_sum.tolist() + promis_mental_sum.tolist() + promis_physical_sum.tolist()], columns=['user_id', 'ace_sum'] + phq9_lst + gad_lst + promis_mental_lst + promis_physical_lst), ignore_index = True)
+    state = 'prenatal' if iter == 0 else 'postnatal'
 
+    np.save(os.path.join(path, f"W_{state}.npy"), W)
+    iter += 1
 
-# #
-# processed_individual_questions_df = processed_individual_questions_df.dropna()
+'''
+Robust analysis
+'''
+# for i in range(10):
+    
+#     sampled_user_lst = random.sample(unique_user_lst, 40)
+#     try:
+#         promis_prenatal_df_sampled = promis_prenatal_df[promis_prenatal_df['user_id'].isin(sampled_user_lst)]
+#         prenatal_df_sampled = prenatal_df[prenatal_df['user_id'].isin(sampled_user_lst)]
+#         if individual_question:
+#             process_overall_df = process_all_df_individual_questions(prenatal_df_sampled, promis_prenatal_df_sampled)
+#             W = get_adjacency_mat_individual_questions(process_overall_df)
 
-
+#         else:
+#             processed_overall_df = process_all_df(prenatal_df_sampled, promis_prenatal_df_sampled)
+#             W = get_adjacency_mat(processed_overall_df)
+#         np.save(os.path.join(path, f"W_{i}.npy"), W)
+#     except:
+#         print(f"{i} fail")
+#         continue
 # #
 # len(processed_individual_questions_df.columns)
 
