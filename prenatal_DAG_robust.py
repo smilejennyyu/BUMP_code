@@ -185,17 +185,21 @@ def separate_promis(prenatal_df, postnatal_df, promis_df):
     for user in postnatal_df.user_id.unique():
         curr_user_df = promis_df[promis_df['user_id'] == user]
         promis_postnatal_exist = np.max(curr_user_df.date) >= np.min(postnatal_df[postnatal_df['user_id'] == user].date)
-        if promis_postnatal_exist:
+        promis_prenatal_exist = np.min(curr_user_df.date) <= np.max(prenatal_df[prenatal_df['user_id'] == user].date)
+
+        if promis_prenatal_exist and promis_postnatal_exist:
+            promis_prenatal_df_list.append(curr_user_df[curr_user_df['date'] <= np.max(prenatal_df[prenatal_df['user_id'] == user].date)])
+        # if promis_postnatal_exist:
             # all_data_available_user_id.append(user)
             promis_postnatal_df_list.append(curr_user_df[curr_user_df['date'] >= np.min(postnatal_df[postnatal_df['user_id'] == user].date)])
             
-    for user in prenatal_df.user_id.unique():
-        curr_user_df = promis_df[promis_df['user_id'] == user]
+    # for user in prenatal_df.user_id.unique():
+    #     curr_user_df = promis_df[promis_df['user_id'] == user]
 
-        promis_prenatal_exist = np.min(curr_user_df.date) <= np.max(prenatal_df[prenatal_df['user_id'] == user].date)
+    #     promis_prenatal_exist = np.min(curr_user_df.date) <= np.max(prenatal_df[prenatal_df['user_id'] == user].date)
 
-        if promis_prenatal_exist:
-            promis_prenatal_df_list.append(curr_user_df[curr_user_df['date'] <= np.max(prenatal_df[prenatal_df['user_id'] == user].date)])
+    #     if promis_prenatal_exist:
+    #         promis_prenatal_df_list.append(curr_user_df[curr_user_df['date'] <= np.max(prenatal_df[prenatal_df['user_id'] == user].date)])
     promis_postnatal_df = pd.concat(promis_postnatal_df_list, ignore_index=True)
     promis_prenatal_df = pd.concat(promis_prenatal_df_list, ignore_index=True)
     return promis_prenatal_df, promis_postnatal_df
@@ -302,7 +306,8 @@ def process_all_df(overall_df, promis_survey_processed):
         promis_physical_sum = promis_survey_processed.loc[promis_survey_processed['user_id']==uid][promis_physical_lst].sum(axis=1)
         promis_physical_mean = promis_physical_sum.apply(map_levels, map_dict=promis_physical_levels).mean()
         
-        processed_overall_df = processed_overall_df.append({'user_id': uid, 'ace_sum': ace_sum_mean, 'promis_physical_mean': promis_physical_mean, 'promis_mental_mean': promis_mental_mean, 'phq9_sum': phq9_sum_mean, 'gad_sum': gad_sum_mean}, ignore_index=True)
+        processed_overall_df = processed_overall_df.append({'user_id': uid, 'ace_sum': ace_sum_mean, 'promis_physical_mean': promis_physical_mean, 
+        'promis_mental_mean': promis_mental_mean, 'phq9_sum': phq9_sum_mean, 'gad_sum': gad_sum_mean}, ignore_index=True)
     return processed_overall_df
 
 
@@ -339,7 +344,7 @@ import matplotlib.pyplot as plt
 
 def get_adjacency_mat(processed_overall_df):
     data = processed_overall_df[['ace_sum', 'phq9_sum', 'gad_sum', 'promis_mental_mean', 'promis_physical_mean']].to_numpy().tolist()
-    output_dict = notears.run(notears.notears_standard, data, notears.loss.least_squares_loss, notears.loss.least_squares_loss_grad, e=1e-8, verbose=False)
+    output_dict = notears.run(notears.notears_with_mask, data, notears.loss.least_squares_loss, notears.loss.least_squares_loss_grad, W_mask=get_mask(), e=1e-8, verbose=False)
 
 
     #
@@ -373,7 +378,7 @@ def get_adjacency_mat(processed_overall_df):
 # # [markdown]
 # # # Individual question similarity analysis
 def get_adjacency_mat_individual_questions(df):
-    data = df[phq9_lst + gad_lst + promis_mental_lst + promis_physical_lst].to_numpy().tolist()
+    data = df[ace_lst + phq9_lst + gad_lst + promis_mental_lst + promis_physical_lst].to_numpy().tolist()
     output_dict = notears.run(notears.notears_standard, data, notears.loss.least_squares_loss, notears.loss.least_squares_loss_grad, e=1e-8, verbose=False)
     print('Acyclicity loss: {}'.format(output_dict['h']))
     print('Least squares loss: {}'.format(output_dict['loss']))
@@ -381,13 +386,14 @@ def get_adjacency_mat_individual_questions(df):
 def process_all_df_individual_questions(overall_df, promis_survey_processed):
     #
 
-    processed_individual_questions_df = pd.DataFrame(columns=['user_id', 'ace_sum'] + phq9_lst + gad_lst + promis_mental_lst + promis_physical_lst)
+    processed_individual_questions_df = pd.DataFrame(columns=['user_id'] + ace_lst + phq9_lst + gad_lst + promis_mental_lst + promis_physical_lst)
 
     for uid in overall_df['user_id'].unique():
         each_df = overall_df.loc[overall_df['user_id']==uid]
+
         ace_sum = each_df[ace_lst].sum(axis=1)
         ace_sum_mean = ace_sum.apply(map_levels, map_dict=ace_levels).mean()
-
+        ace_mean = each_df[ace_lst].mean(axis=0)
         phq9_sum = each_df[phq9_lst].mean(axis=0)
 
         gad_sum = each_df[gad_lst].mean(axis=0)
@@ -396,18 +402,33 @@ def process_all_df_individual_questions(overall_df, promis_survey_processed):
 
         promis_physical_sum = promis_survey_processed.loc[promis_survey_processed['user_id']==uid][promis_physical_lst].mean(axis=0)
         
-        processed_individual_questions_df = processed_individual_questions_df.append(pd.DataFrame([[uid, ace_sum_mean] + phq9_sum.tolist() + gad_sum.tolist() + promis_mental_sum.tolist() + promis_physical_sum.tolist()], columns=['user_id', 'ace_sum'] + phq9_lst + gad_lst + promis_mental_lst + promis_physical_lst), ignore_index = True)
+        processed_individual_questions_df = processed_individual_questions_df.append(pd.DataFrame([[uid] + ace_mean.tolist() + 
+        phq9_sum.tolist() + gad_sum.tolist() + promis_mental_sum.tolist() + promis_physical_sum.tolist()], columns=['user_id']+ ace_lst + 
+        phq9_lst + gad_lst + promis_mental_lst + promis_physical_lst), ignore_index = True)
 
 
     #
     processed_individual_questions_df = processed_individual_questions_df.dropna()
     return processed_individual_questions_df
 
-prenatal_df, postnatal_df = separate_by_delivery(overall_df, same_set_users=True)
-promis_prenatal_df, promis_postnatal_df = separate_promis(prenatal_df, postnatal_df, promis_survey_processed)
+def get_mask():
+    total_dim = len(ace_lst + phq9_lst + gad_lst + promis_mental_lst + promis_physical_lst)
+    # row cause column
+    W_mask = np.zeros((total_dim, total_dim))
+    W_mask[len(ace_lst):, :len(ace_lst)] = 100
+    return W_mask
 
-path = "/mnt/results/same_set_user"
-individual_question = False
+
+
+prenatal_df, postnatal_df = separate_by_delivery(overall_df, same_set_users=True)
+print(len(prenatal_df['user_id'].unique()))
+print(len(postnatal_df['user_id'].unique()))
+promis_prenatal_df, promis_postnatal_df = separate_promis(prenatal_df, postnatal_df, promis_survey_processed)
+print(len(promis_prenatal_df['user_id'].unique()))
+print(len(promis_postnatal_df['user_id'].unique()))
+
+path = "/mnt/results/absent_edge_exact_same_set_user"
+individual_question = True
 if individual_question:
     path += "_individual"
 if not os.path.exists(path):
@@ -415,6 +436,7 @@ if not os.path.exists(path):
 import random
 random.seed(42)
 unique_user_lst = list(promis_prenatal_df['user_id'].unique())
+
 
 iter = 0
 for rest_df, promis_df in [[prenatal_df, promis_prenatal_df], [postnatal_df, promis_postnatal_df]]:
