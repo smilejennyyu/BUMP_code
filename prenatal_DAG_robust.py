@@ -6,7 +6,7 @@ import pandas as pd
 from src.s3_utils import pandas_from_csv_s3
 import re
 import os
-
+import pickle as pkl
 # # Data processing: Join PHQ9, GAD7 and ACE datasets together by record_id and redcap_event_name
 
 data = data_load(data_keys={'phq9', 'generalized_anxiety_disorder_scale_gad7', 'ace', 'surveys', 'study_ids', 'check_in_adherence_log'})
@@ -344,12 +344,12 @@ import matplotlib.pyplot as plt
 
 def get_adjacency_mat(processed_overall_df):
     data = processed_overall_df[['ace_sum', 'phq9_sum', 'gad_sum', 'promis_mental_mean', 'promis_physical_mean']].to_numpy().tolist()
-    output_dict = notears.run(notears.notears_with_mask, data, notears.loss.least_squares_loss, notears.loss.least_squares_loss_grad, W_mask=get_mask(), e=1e-8, verbose=False)
+    output_dict = notears.run(notears.notears_standard, data, notears.loss.least_squares_loss, notears.loss.least_squares_loss_grad, e=1e-8, verbose=False, output_all_progress=True)
 
 
     #
-    print('Acyclicity loss: {}'.format(output_dict['h']))
-    print('Least squares loss: {}'.format(output_dict['loss']))
+    # print('Acyclicity loss: {}'.format(output_dict['h']))
+    # print('Least squares loss: {}'.format(output_dict['loss']))
 
     # plt.matshow(output_dict['W'])
     # plt.title("Learned adjacency matrix")
@@ -371,7 +371,7 @@ def get_adjacency_mat(processed_overall_df):
     # networkx.draw_networkx_edge_labels(weighted_G,pos=layout,edge_labels=labels)
     # plt.show()
 
-    return output_dict['W']
+    return output_dict
 
 
 
@@ -379,10 +379,11 @@ def get_adjacency_mat(processed_overall_df):
 # # # Individual question similarity analysis
 def get_adjacency_mat_individual_questions(df):
     data = df[ace_lst + phq9_lst + gad_lst + promis_mental_lst + promis_physical_lst].to_numpy().tolist()
-    output_dict = notears.run(notears.notears_standard, data, notears.loss.least_squares_loss, notears.loss.least_squares_loss_grad, e=1e-8, verbose=False)
-    print('Acyclicity loss: {}'.format(output_dict['h']))
-    print('Least squares loss: {}'.format(output_dict['loss']))
-    return output_dict["W"]
+    output_dict = notears.run(notears.notears_with_mask, data, notears.loss.least_squares_loss, notears.loss.least_squares_loss_grad, 
+    W_mask=get_mask(0.001), e=1e-7, verbose=False, output_all_progress=True, rnd_W_init=True)
+    # print('Acyclicity loss: {}'.format(output_dict['h']))
+    # print('Least squares loss: {}'.format(output_dict['loss']))
+    return output_dict
 def process_all_df_individual_questions(overall_df, promis_survey_processed):
     #
 
@@ -411,15 +412,15 @@ def process_all_df_individual_questions(overall_df, promis_survey_processed):
     processed_individual_questions_df = processed_individual_questions_df.dropna()
     return processed_individual_questions_df
 
-def get_mask():
+def get_mask(alpha):
     total_dim = len(ace_lst + phq9_lst + gad_lst + promis_mental_lst + promis_physical_lst)
     # row cause column
     W_mask = np.zeros((total_dim, total_dim))
-    W_mask[len(ace_lst):, :len(ace_lst)] = 100
+    W_mask[len(ace_lst):, :len(ace_lst)] = alpha
     return W_mask
 
-
-
+# print(np.sum(get_mask()))
+# print(get_mask()[14])
 prenatal_df, postnatal_df = separate_by_delivery(overall_df, same_set_users=True)
 print(len(prenatal_df['user_id'].unique()))
 print(len(postnatal_df['user_id'].unique()))
@@ -442,11 +443,14 @@ iter = 0
 for rest_df, promis_df in [[prenatal_df, promis_prenatal_df], [postnatal_df, promis_postnatal_df]]:
     if individual_question:
         processed_overall_df = process_all_df_individual_questions(rest_df, promis_df)
-        W = get_adjacency_mat_individual_questions(processed_overall_df)
+        output_dict = get_adjacency_mat_individual_questions(processed_overall_df)
 
     else:
         processed_overall_df = process_all_df(rest_df, promis_df).dropna()
-        W = get_adjacency_mat(processed_overall_df)
+        output_dict = get_adjacency_mat(processed_overall_df)
+    with open(os.path.join(path, 'output_dict.pkl'), 'wb') as f:
+        pkl.dump(output_dict, f)
+    W = output_dict[-1]['W']
     
     state = 'prenatal' if iter == 0 else 'postnatal'
 
